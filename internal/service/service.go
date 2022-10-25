@@ -10,6 +10,7 @@ import (
 
 type Connection interface {
 	GetConnections(ctx context.Context, userId int64) ([]entity.Connection, error)
+	CreateConnection(ctx context.Context, usr *entity.User, serverId int) (int, error)
 }
 
 type Service struct {
@@ -18,6 +19,6 @@ type Service struct {
 
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
-		Connection: NewConnectionService(repos.Connection),
+		Connection: NewConnectionService(repos.Connection, new(CryptoService)),
 	}
 }

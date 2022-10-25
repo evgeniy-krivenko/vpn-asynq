@@ -3,7 +3,7 @@ module github.com/evgeniy-krivenko/vpn-asynq
 go 1.19
 
 require (
-	github.com/evgeniy-krivenko/vpn-api v0.1.2
+	github.com/evgeniy-krivenko/vpn-api/gen/conn_service v0.0.0-20221023135416-0b1738ea3003
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.4.0
@@ -11,6 +11,7 @@ require (
 	github.com/spf13/viper v1.13.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
+	modernc.org/strutil v1.1.3
 )
 
 require (

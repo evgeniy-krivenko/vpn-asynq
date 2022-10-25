@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	pb "github.com/evgeniy-krivenko/vpn-api/api"
+	"github.com/evgeniy-krivenko/vpn-api/gen/conn_service"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/logger"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/repository"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/service"
@@ -51,6 +51,21 @@ func main() {
 
 	log.Infof("successful connected to db by host: %s and port: %s", cfg.Host, cfg.Port)
 
+	/*
+			ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+		в цикле создаем коннекты к разным ss сервиса по ключам из консула
+		добавляем в мапу по ключу сервиса.
+			conn, err := grpc.DialContext(ctxWithTimeout, "localhost:50051",
+				grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+			if err != nil {
+				log.Fatalf("error connect to grpc server %s", err.Error())
+			}
+			defer conn.Close()
+
+			cs := conn_service.NewConnectionServiceClient(conn)
+	*/
+
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("error to open connection: %w", err)
@@ -61,7 +76,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	pb.RegisterConnectionServiceServer(
+	conn_service.RegisterConnectionServiceServer(
 		grpcServer,
 		conn_grpc.NewConnectionTransport(services, log),
 	)
