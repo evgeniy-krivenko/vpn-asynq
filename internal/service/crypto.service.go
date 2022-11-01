@@ -19,11 +19,12 @@ type Crypto interface {
 	Encrypt(text, key string) (string, error)
 	Decrypt(cipherText, key string) (string, error)
 	GeneratePassword(passwordLen int) string
-	GenerateConfig(conn *entity.Connection, key string) (string, error)
+	GenerateSSConfig(conn *entity.Connection, cnf struct{ key, name string }) (string, error)
 }
 
 type CryptoService struct{}
 
+// Encrypt service - key must be 16, 24 or 32 length
 func (c CryptoService) Encrypt(text, key string) (string, error) {
 	cpr, err := aes.NewCipher([]byte(key))
 	if err != nil {
@@ -77,8 +78,15 @@ func (c CryptoService) GeneratePassword(passwordLen int) string {
 	return string(passwordRunes)
 }
 
-func (c CryptoService) GenerateConfig(conn *entity.Connection, key string) (string, error) {
-	plainSecret, err := c.Decrypt(conn.EncryptedSecret, key)
+// GenerateSSConfig - key must be 16, 24 or 32 length
+func (c CryptoService) GenerateSSConfig(conn *entity.Connection, cnf struct{ key, name string }) (string, error) {
+	switch len(cnf.key) {
+	default:
+		return "", fmt.Errorf("wrong key len")
+	case 16, 24, 32:
+		break
+	}
+	plainSecret, err := c.Decrypt(conn.EncryptedSecret, cnf.key)
 	if err != nil {
 		return "", e.Warp("error decrypted when gen conf: %w", err)
 	}
@@ -86,7 +94,7 @@ func (c CryptoService) GenerateConfig(conn *entity.Connection, key string) (stri
 	userInfo := fmt.Sprintf("%s:%s", Method, plainSecret)
 
 	encodedUserInfo := strutil.Base64Encode([]byte(userInfo))
-	conf := fmt.Sprintf("ss://%s@%s:%d#vpn", string(encodedUserInfo), conn.IpAddress, conn.Port)
+	conf := fmt.Sprintf("ss://%s@%s:%d#%s", string(encodedUserInfo), conn.IpAddress, conn.Port, cnf.name)
 	return conf, nil
 }
 
