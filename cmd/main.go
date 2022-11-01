@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/evgeniy-krivenko/vpn-api/gen/conn_service"
+	"github.com/evgeniy-krivenko/vpn-asynq/configs"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/logger"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/repository"
 	"github.com/evgeniy-krivenko/vpn-asynq/internal/service"
 	conn_grpc "github.com/evgeniy-krivenko/vpn-asynq/internal/transport/grpc/v1"
-	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healphpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
-	"os"
+	"net/http"
 	"os/signal"
 	"syscall"
 )
@@ -26,21 +29,19 @@ func main() {
 
 	log := logger.NewLogrusLogger(lgr)
 
-	if err := initConfig(); err != nil {
-		log.Fatalf("error load config file: %s", err.Error())
-	}
-
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("error load env file: %s", err.Error())
+	viper.AutomaticEnv()
+	httpPort := configs.MustPort()
+	if err := configs.InitConsulConfig(log, httpPort); err != nil {
+		log.Fatalf("%s", err.Error())
 	}
 
 	cfg := repository.Config{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		Username: os.Getenv("DB_USERNAME"),
-		Password: os.Getenv("DB_PASSWORD"),
-		DBName:   viper.GetString("db.dbName"),
-		SSLMode:  viper.GetString("db.sslMode"),
+		Host:     viper.GetString(configs.DbHost),
+		Port:     viper.GetString(configs.DbPort),
+		Username: viper.GetString(configs.DbUsername),
+		Password: viper.GetString(configs.DbPassword),
+		DBName:   viper.GetString(configs.DbName),
+		SSLMode:  viper.GetString(configs.SslMode),
 	}
 
 	db, err := repository.NewPostgresDB(ctx, cfg)
@@ -50,6 +51,13 @@ func main() {
 	defer db.Close()
 
 	log.Infof("successful connected to db by host: %s and port: %s", cfg.Host, cfg.Port)
+
+	go func() {
+		http.HandleFunc("/check", check)
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", httpPort), nil); err != nil {
+			log.Fatalf("error to start checked service: %s", err.Error())
+		}
+	}()
 
 	/*
 			ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*10)
@@ -81,6 +89,9 @@ func main() {
 		conn_grpc.NewConnectionTransport(services, log),
 	)
 
+	healthGrpcServer := health.NewServer()
+	healphpb.RegisterHealthServer(grpcServer, healthGrpcServer)
+
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
 			log.Fatalf("error to start server: %w", err)
@@ -95,8 +106,7 @@ func main() {
 	}
 }
 
-func initConfig() error {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
-	return viper.ReadInConfig()
+func check(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Consul check")
 }

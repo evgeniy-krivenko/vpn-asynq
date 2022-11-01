@@ -27,6 +27,7 @@ func (c *ConnectionTransport) GetConnections(ctx context.Context, req *conn_serv
 		c.log.WithContextReqId(ctx).
 			Errorf("error to get connections for user: %d: w%", req.GetUserId(), err)
 	}
+	resp.Connections = make([]*conn_service.Connection, len(conns))
 
 	for _, conn := range conns {
 		resp.Connections = append(resp.Connections,
@@ -50,12 +51,17 @@ func (c *ConnectionTransport) GetConnectionInfo(context.Context, *conn_service.G
 func (c *ConnectionTransport) GetServers(context.Context, *conn_service.GetServersReq) (*conn_service.GetServersResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServers not implemented")
 }
+
+func (c *ConnectionTransport) CreateConnection(context.Context, *conn_service.CreateConnectionReq) (*conn_service.CreateConnectionRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeactivateConnection not implemented")
+}
+
 func (c *ConnectionTransport) GetConfig(context.Context, *conn_service.GetConfigReq) (*conn_service.GetConfigRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetConfig not implemented")
 }
-func (c *ConnectionTransport) ActivateConnection(context.Context, *conn_service.ActivateConnectionReq) (*conn_service.ActivateConnectionRes, error) {
+func (c *ConnectionTransport) ActivateConnection(context.Context, *conn_service.SwitchConnectionReq) (*conn_service.SwitchConnectionRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ActivateConnection not implemented")
 }
-func (c *ConnectionTransport) DeactivateConnection(context.Context, *conn_service.DeactivateConnectionReq) (*conn_service.DeactivateConnectionRes, error) {
+func (c *ConnectionTransport) DeactivateConnection(context.Context, *conn_service.SwitchConnectionReq) (*conn_service.SwitchConnectionRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeactivateConnection not implemented")
 }

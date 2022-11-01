@@ -13,18 +13,35 @@ type ConnectionRepository struct {
 }
 
 func (c *ConnectionRepository) GetLastConnectionPortCount(ctx context.Context) (*entity.ConnectionPortCount, error) {
-	//TODO implement me
-	panic("implement me")
+	var cp entity.ConnectionPortCount
+	query := `SELECT port, count(port) FROM connections
+			  GROUP BY port
+			  ORDER BY port
+			  DESC LIMIT 1;`
+	if err := c.db.GetContext(ctx, &cp, query); err != nil {
+		c.log.WithContextReqId(ctx).
+			Errorf("error get last port from db: %s", err.Error())
+		return nil, err
+	}
+	return &cp, nil
 }
 
-func (c *ConnectionRepository) CreateConnection(ctx context.Context, connection *entity.Connection) (int, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *ConnectionRepository) CreateConnection(ctx context.Context, conn *entity.Connection) (int, error) {
+	var id int
+	query := `INSERT INTO connections (port, encrypted_secret, user_id, server_id)
+			  VALUES ($1, $2, $3, $4)
+			  RETURNING id;`
+	row := c.db.QueryRowxContext(ctx, query, conn.Port, conn.EncryptedSecret, conn.UserId, conn.ServerId)
+	if err := row.Scan(&id); err != nil {
+		c.log.WithContextReqId(ctx).
+			Errorf("error when creating conn: %s, conn: %v", err.Error(), conn)
+		return 0, err
+	}
+	return id, nil
 }
 
 func (c *ConnectionRepository) GetConnectionsByUserId(ctx context.Context, id int64) ([]entity.Connection, error) {
 	var connections []entity.Connection
-	// sql syntax
 	query := `SELECT connections.id,
 					 server_id, port, u.user_id, encrypted_secret,
 					 s.ip_address as "ip_address", s.location as "location"
